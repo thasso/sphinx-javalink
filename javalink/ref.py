@@ -114,7 +114,7 @@ class JavarefRole(EnvAccessor):
         return self.app.env
 
     def find_ref(self, reftext):
-        reftext = reftext.strip()
+        reftext = reftext.strip().replace('\r\n', '').replace('\n', '').replace('\r', '')
 
         # TODO add additional validation (see SeeTagImpl.java)
         where, _, what = reftext.partition('#')
