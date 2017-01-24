@@ -105,6 +105,11 @@ def merge_imports(env, docnames, other):
         env.javalink_imports.setdefault(doc, []).extend(imports)
 
 
+def cleanup(app, exception):
+    if hasattr(app.env, 'javalink_classloader'):
+        app.env.javalink_classloader.close()
+
+
 class JavarefRole(EnvAccessor):
     def __init__(self, app):
         self.app = app
@@ -144,7 +149,7 @@ class JavarefRole(EnvAccessor):
 
         path = where.replace('.', '/').replace('$', '.')
         path += '.html'
-        
+
         if what:
             java_version = self._find_java_version(where)
             path += self.to_anchor(java_version, what)
@@ -154,10 +159,10 @@ class JavarefRole(EnvAccessor):
     def to_anchor(self, java_version, what):
         if java_version > 7:
             # javadoc in 8+ uses '-' as separator
-            what = what.replace('(','-').replace(')','-').replace(', ','-')
+            what = what.replace('(', '-').replace(')', '-').replace(', ', '-')
 
         return '#{}'.format(urlquote(what, ';/?:@&=+$,()-'))
-    
+
     def to_title(self, where, what):
         package, name = parse_name(where)
         if name == 'package-summary':
@@ -301,20 +306,22 @@ def normalize_docroot(app, root):
 
     if isinstance(root, basestring):
         (url, base) = _parse_docroot_str(srcdir, root)
-
-        return {'root':url, 'base':base, 'version':default_version}
+        return {'root': url, 'base': base, 'version': default_version}
     else:
+        normalized = {}
+        normalized['root'] = _parse_docroot_str(srcdir, root['root'])[0]
+
         if 'base' in root:
-            root['base'] = _parse_docroot_str(srcdir, root['base'])[1]
+            normalized['base'] = _parse_docroot_str(srcdir, root['base'])[1]
         else:
-            root['base'] = _parse_docroot_str(srcdir, root['root'])[1]
+            normalized['base'] = _parse_docroot_str(srcdir, root['root'])[1]
 
-        root['root'] = _parse_docroot_str(srcdir, root['root'])[0]
+        if 'version' in root:
+            normalized['version'] = root['version']
+        else:
+            normalized['version'] = default_version
 
-        if 'version' not in root:
-            root['version'] = default_version
-
-        return root
+        return normalized
 
 
 def _parse_docroot_str(srcdir, root):
